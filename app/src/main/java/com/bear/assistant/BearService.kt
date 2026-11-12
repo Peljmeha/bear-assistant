@@ -10,22 +10,43 @@ import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
+import android.speech.tts.TextToSpeech
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.WindowManager
 import android.widget.TextView
 import android.widget.Toast
+import java.util.Locale
 
 class BearService : Service() {
     private lateinit var wm: WindowManager
     private var bear: TextView? = null
+    private var tts: TextToSpeech? = null
+    private var ttsReady = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startAsForeground()
+        if (tts == null) {
+            tts = TextToSpeech(this) { status ->
+                if (status == TextToSpeech.SUCCESS) {
+                    val r = tts?.setLanguage(Locale("ru", "RU"))
+                    ttsReady = r != TextToSpeech.LANG_MISSING_DATA &&
+                        r != TextToSpeech.LANG_NOT_SUPPORTED
+                }
+            }
+        }
         if (bear == null) showBear()
         return START_STICKY
+    }
+
+    private fun say(text: String) {
+        if (ttsReady) {
+            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "bear")
+        } else {
+            Toast.makeText(this, "Нет русского голоса: $text", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun startAsForeground() {
@@ -88,7 +109,7 @@ class BearService : Service() {
                 }
                 MotionEvent.ACTION_UP -> {
                     if (!moved) {
-                        Toast.makeText(this, "Привет! Я медвежонок 🐻", Toast.LENGTH_SHORT).show()
+                        say("Привет! Я медвежонок")
                     } else {
                         val screenW = resources.displayMetrics.widthPixels
                         params.x = if (params.x + v.width / 2 < screenW / 2) 0 else screenW - v.width
@@ -104,6 +125,8 @@ class BearService : Service() {
     }
 
     override fun onDestroy() {
+        tts?.shutdown()
+        tts = null
         bear?.let { wm.removeView(it) }
         bear = null
         super.onDestroy()
