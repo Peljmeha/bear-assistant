@@ -39,9 +39,13 @@ class MainActivity : Activity() {
                     Uri.parse("package:$packageName")
                 )
             )
-        } else {
-            startForegroundService(Intent(this, BearService::class.java))
-            finish()
+            return
         }
+        startForegroundService(Intent(this, BearService::class.java))
+        val enabled = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
+        if (enabled == null || !enabled.contains(packageName)) {
+            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+        }
+        finish()
     }
 }
