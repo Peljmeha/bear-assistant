@@ -1,3 +1,4 @@
+
 package com.bear.assistant
 
 import android.app.Notification
@@ -19,12 +20,21 @@ import android.widget.Toast
 import java.util.Locale
 
 class BearService : Service() {
+    companion object {
+        var instance: BearService? = null
+    }
+
     private lateinit var wm: WindowManager
     private var bear: TextView? = null
     private var tts: TextToSpeech? = null
     private var ttsReady = false
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        instance = this
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startAsForeground()
@@ -41,12 +51,24 @@ class BearService : Service() {
         return START_STICKY
     }
 
-    private fun say(text: String) {
+    private fun say(text: String, queue: Int = TextToSpeech.QUEUE_FLUSH) {
         if (ttsReady) {
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "bear")
+            tts?.speak(text, queue, null, "bear")
         } else {
             Toast.makeText(this, "Нет русского голоса: $text", Toast.LENGTH_LONG).show()
         }
+    }
+
+    fun onNotification(title: String, text: String) {
+        val phrase = listOf("Уведомление", title, text)
+            .filter { it.isNotBlank() }
+            .joinToString(". ")
+            .take(300)
+        say(phrase, TextToSpeech.QUEUE_ADD)
+        bear?.animate()
+            ?.scaleX(1.4f)?.scaleY(1.4f)?.setDuration(200)
+            ?.withEndAction { bear?.animate()?.scaleX(1f)?.scaleY(1f)?.setDuration(200)?.start() }
+            ?.start()
     }
 
     private fun startAsForeground() {
@@ -125,6 +147,7 @@ class BearService : Service() {
     }
 
     override fun onDestroy() {
+        instance = null
         tts?.shutdown()
         tts = null
         bear?.let { wm.removeView(it) }
