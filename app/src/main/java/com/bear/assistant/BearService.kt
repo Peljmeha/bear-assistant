@@ -51,7 +51,7 @@ class BearService : Service() {
         return START_STICKY
     }
 
-    private fun say(text: String, queue: Int = TextToSpeech.QUEUE_FLUSH) {
+    fun say(text: String, queue: Int = TextToSpeech.QUEUE_FLUSH) {
         if (ttsReady) {
             tts?.speak(text, queue, null, "bear")
         } else {
@@ -131,7 +131,7 @@ class BearService : Service() {
                 }
                 MotionEvent.ACTION_UP -> {
                     if (!moved) {
-                        say("Привет! Я медвежонок")
+                        startActivity(Intent(this, ChatActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                     } else {
                         val screenW = resources.displayMetrics.widthPixels
                         params.x = if (params.x + v.width / 2 < screenW / 2) 0 else screenW - v.width
