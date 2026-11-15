@@ -152,7 +152,7 @@ class ChatActivity : Activity() {
                 JSONObject().put("parts", JSONArray().put(JSONObject().put("text", system)))
             )
             .put("contents", history)
-            .put("tools", JSONArray().put(JSONObject().put("google_search", JSONObject())))
+            
 
         val conn = URL(
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
