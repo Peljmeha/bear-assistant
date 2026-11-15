@@ -60,6 +60,10 @@ class BearService : Service() {
     }
 
     fun onNotification(title: String, text: String) {
+                val am = getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+        if (am.ringerMode != android.media.AudioManager.RINGER_MODE_NORMAL) return
+        val nm = getSystemService(NotificationManager::class.java)
+        if (nm.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL) return
         val phrase = listOf("Уведомление", title, text)
             .filter { it.isNotBlank() }
             .joinToString(". ")
