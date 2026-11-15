@@ -155,13 +155,13 @@ class ChatActivity : Activity() {
             
 
         val conn = URL(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
         ).openConnection() as HttpURLConnection
         conn.requestMethod = "POST"
         conn.setRequestProperty("Content-Type", "application/json")
         conn.setRequestProperty("x-goog-api-key", key)
         conn.connectTimeout = 15000
-        conn.readTimeout = 40000
+        conn.readTimeout = 60000
         conn.doOutput = true
         conn.outputStream.use { it.write(body.toString().toByteArray()) }
 
