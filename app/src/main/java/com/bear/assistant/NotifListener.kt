@@ -7,6 +7,8 @@ import android.service.notification.StatusBarNotification
 class NotifListener : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         if (sbn.packageName == packageName) return
+                val muted = getSharedPreferences("bear", MODE_PRIVATE).getStringSet("muted", emptySet()) ?: emptySet()
+        if (sbn.packageName in muted) return
         val n = sbn.notification
         if (n.flags and Notification.FLAG_ONGOING_EVENT != 0) return
         if (n.flags and Notification.FLAG_GROUP_SUMMARY != 0) return
