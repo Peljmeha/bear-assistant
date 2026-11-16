@@ -27,6 +27,11 @@ class ChatActivity : Activity() {
     private lateinit var sendBtn: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
+                setTheme(
+            if (getSharedPreferences("bear", MODE_PRIVATE).getBoolean("dark", false))
+                android.R.style.Theme_Material_Dialog
+            else android.R.style.Theme_Material_Light_Dialog
+        )
         super.onCreate(savedInstanceState)
         val d = resources.displayMetrics.density
         val pad = (16 * d).toInt()
