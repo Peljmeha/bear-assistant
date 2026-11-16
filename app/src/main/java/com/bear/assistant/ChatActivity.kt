@@ -49,18 +49,18 @@ class ChatActivity : Activity() {
         val keyBtn = Button(this).apply {
             text = "🔑"
             setOnClickListener { askKey() }
-                    val updBtn = Button(this).apply {
+        }
+        val updBtn = Button(this).apply {
             text = "⟳"
             setOnClickListener {
                 Updater.checkAndUpdate(this@ChatActivity) { answer.text = it }
             }
-                    }
         }
         val row = LinearLayout(this).apply {
             addView(mic)
             addView(sendBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             addView(keyBtn)
-                        addView(updBtn)
+            addView(updBtn)
         }
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -159,7 +159,6 @@ class ChatActivity : Activity() {
                 JSONObject().put("parts", JSONArray().put(JSONObject().put("text", system)))
             )
             .put("contents", history)
-            
 
         val conn = URL(
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent"
