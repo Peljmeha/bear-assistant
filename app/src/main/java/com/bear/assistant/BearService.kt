@@ -1,4 +1,3 @@
-
 package com.bear.assistant
 
 import android.app.Notification
@@ -59,11 +58,16 @@ class BearService : Service() {
         }
     }
 
+    fun setAvatar(a: String) {
+        bear?.text = a
+    }
+
     fun onNotification(title: String, text: String) {
-                val am = getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+        val am = getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
         if (am.ringerMode != android.media.AudioManager.RINGER_MODE_NORMAL) return
         val nm = getSystemService(NotificationManager::class.java)
         if (nm.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL) return
+
         val phrase = listOf("Уведомление", title, text)
             .filter { it.isNotBlank() }
             .joinToString(". ")
@@ -94,8 +98,9 @@ class BearService : Service() {
 
     private fun showBear() {
         wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        val avatar = getSharedPreferences("bear", MODE_PRIVATE).getString("avatar", "🐻") ?: "🐻"
         val view = TextView(this).apply {
-            text = "🐻"
+            text = avatar
             textSize = 48f
         }
         val params = WindowManager.LayoutParams(
@@ -135,7 +140,10 @@ class BearService : Service() {
                 }
                 MotionEvent.ACTION_UP -> {
                     if (!moved) {
-                        startActivity(Intent(this, ChatActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                        startActivity(
+                            Intent(this, PanelActivity::class.java)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
                     } else {
                         val screenW = resources.displayMetrics.widthPixels
                         params.x = if (params.x + v.width / 2 < screenW / 2) 0 else screenW - v.width
@@ -159,3 +167,4 @@ class BearService : Service() {
         super.onDestroy()
     }
 }
+            
