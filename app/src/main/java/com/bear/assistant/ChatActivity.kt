@@ -49,11 +49,18 @@ class ChatActivity : Activity() {
         val keyBtn = Button(this).apply {
             text = "🔑"
             setOnClickListener { askKey() }
+                    val updBtn = Button(this).apply {
+            text = "⟳"
+            setOnClickListener {
+                Updater.checkAndUpdate(this@ChatActivity) { answer.text = it }
+            }
+                    }
         }
         val row = LinearLayout(this).apply {
             addView(mic)
             addView(sendBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             addView(keyBtn)
+                        addView(updBtn)
         }
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
