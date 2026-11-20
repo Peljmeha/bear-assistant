@@ -122,6 +122,30 @@ class PanelActivity : Activity() {
             recreate()
         }
         c.addView(theme)
+                val contactsOnly = CheckBox(this)
+        contactsOnly.text = "👤 Озвучивать только от контактов"
+        contactsOnly.isChecked = p.getBoolean("contacts_only", false)
+        contactsOnly.setOnCheckedChangeListener { _, on ->
+            p.edit().putBoolean("contacts_only", on).apply()
+            if (on) requestPermissions(arrayOf(android.Manifest.permission.READ_CONTACTS), 1)
+        }
+        c.addView(contactsOnly)
+
+        val calls = CheckBox(this)
+        calls.text = "📞 Озвучивать входящие звонки"
+        calls.isChecked = p.getBoolean("announce_calls", false)
+        calls.setOnCheckedChangeListener { _, on ->
+            p.edit().putBoolean("announce_calls", on).apply()
+            if (on) requestPermissions(
+                arrayOf(
+                    android.Manifest.permission.READ_PHONE_STATE,
+                    android.Manifest.permission.READ_CALL_LOG,
+                    android.Manifest.permission.READ_CONTACTS
+                ),
+                2
+            )
+        }
+        c.addView(calls)
 
         c.addView(title("Озвучивать уведомления от:"))
         val muted = (p.getStringSet("muted", emptySet()) ?: emptySet()).toMutableSet()
