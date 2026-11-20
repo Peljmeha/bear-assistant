@@ -4,13 +4,22 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
+import android.media.AudioManager
+import android.net.Uri
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.provider.ContactsContract
 import android.speech.tts.TextToSpeech
+import android.telephony.TelephonyManager
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.WindowManager
@@ -27,6 +36,10 @@ class BearService : Service() {
     private var bear: TextView? = null
     private var tts: TextToSpeech? = null
     private var ttsReady = false
+    private var callReceiver: BroadcastReceiver? = null
+    private var ringing = false
+    private var announced = false
+    private val handler = Handler(Looper.getMainLooper())
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -47,6 +60,7 @@ class BearService : Service() {
             }
         }
         if (bear == null) showBear()
+        registerCalls()
         return START_STICKY
     }
 
@@ -62,12 +76,15 @@ class BearService : Service() {
         bear?.text = a
     }
 
-    fun onNotification(title: String, text: String) {
-        val am = getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
-        if (am.ringerMode != android.media.AudioManager.RINGER_MODE_NORMAL) return
+    private fun quiet(): Boolean {
+        val am = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        if (am.ringerMode != AudioManager.RINGER_MODE_NORMAL) return true
         val nm = getSystemService(NotificationManager::class.java)
-        if (nm.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL) return
+        return nm.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL
+    }
 
+    fun onNotification(title: String, text: String) {
+        if (quiet()) return
         val phrase = listOf("Уведомление", title, text)
             .filter { it.isNotBlank() }
             .joinToString(". ")
@@ -77,6 +94,70 @@ class BearService : Service() {
             ?.scaleX(1.4f)?.scaleY(1.4f)?.setDuration(200)
             ?.withEndAction { bear?.animate()?.scaleX(1f)?.scaleY(1f)?.setDuration(200)?.start() }
             ?.start()
+    }
+
+    private fun contactName(number: String): String? {
+        if (checkSelfPermission(android.Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
+            return null
+        }
+        val uri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(number))
+        contentResolver.query(uri, arrayOf(ContactsContract.PhoneLookup.DISPLAY_NAME), null, null, null)?.use {
+            if (it.moveToFirst()) return it.getString(0)
+        }
+        return null
+    }
+
+    private fun announceCall(number: String?) {
+        if (quiet()) return
+        val phrase = if (number == null || number.isBlank()) {
+            "Входящий звонок"
+        } else {
+            val name = contactName(number)
+            "Звонит " + (name ?: number.filter { it.isDigit() }.toList().joinToString(" "))
+        }
+        say(phrase)
+        bear?.animate()
+            ?.scaleX(1.4f)?.scaleY(1.4f)?.setDuration(200)
+            ?.withEndAction { bear?.animate()?.scaleX(1f)?.scaleY(1f)?.setDuration(200)?.start() }
+            ?.start()
+    }
+
+    private fun registerCalls() {
+        if (callReceiver != null) return
+        val r = object : BroadcastReceiver() {
+            override fun onReceive(c: Context, i: Intent) {
+                val prefs = getSharedPreferences("bear", MODE_PRIVATE)
+                if (!prefs.getBoolean("announce_calls", false)) return
+                val state = i.getStringExtra(TelephonyManager.EXTRA_STATE)
+                if (state != TelephonyManager.EXTRA_STATE_RINGING) {
+                    ringing = false
+                    announced = false
+                    return
+                }
+                ringing = true
+                @Suppress("DEPRECATION")
+                val number = i.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER)
+                if (announced) return
+                if (number != null) {
+                    announced = true
+                    announceCall(number)
+                } else {
+                    handler.postDelayed({
+                        if (ringing && !announced) {
+                            announced = true
+                            announceCall(null)
+                        }
+                    }, 1500)
+                }
+            }
+        }
+        val f = IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED)
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(r, f, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(r, f)
+        }
+        callReceiver = r
     }
 
     private fun startAsForeground() {
@@ -160,6 +241,8 @@ class BearService : Service() {
 
     override fun onDestroy() {
         instance = null
+        callReceiver?.let { unregisterReceiver(it) }
+        callReceiver = null
         tts?.shutdown()
         tts = null
         bear?.let { wm.removeView(it) }
@@ -167,4 +250,3 @@ class BearService : Service() {
         super.onDestroy()
     }
 }
-            
